@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>My first drawing app</title>
+		<style>
+			body { 
+                margin: 12px 24px;
+                width: 96%;
+                min-width: 240px;
+                height: 69vh; 
+            }
+		</style>
+	</head>
+	<body>
+        <canvas
+            id="canvas"
+            width="100%"
+            height="100%"
+            style="display: block; background-color: #fff; border:solid black 1px; border-radius: 9px ;touch-action:none">
+            Your browser does not support canvas element.
+        </canvas>
+        <br />
+        <br />
+        Log:
+        <pre id="log" style="border: 1px solid #ccc;"></pre>
+        <a href="#" target="_parent" id="download">Download</a>
+	</body>
+
+    <script>
+        const ongoingTouches = [];
+        window.onload = startup;
+        function startup() {
+            const el = document.getElementsByTagName("canvas")[0];
+            const butt = document.getElementById("download");
+            el.addEventListener("pointerdown", handleStart, false);
+            el.addEventListener("pointerup", handleEnd, false);
+            el.addEventListener("pointercancel", handleCancel, false);
+            el.addEventListener("pointermove", handleMove, false);
+            butt.addEventListener("click",downloadCanvasAsImage,false)
+            const canvas = document.getElementById("canvas");
+            canvas.width = document.body.clientWidth;
+            canvas.height = document.body.clientHeight;
+            log("initialized.");
+            var ctx = canvas.getContext("2d");
+            ctx.fillStyle = "white";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+        function handleStart(evt) {
+            log("pointerdown.");
+            const el = document.getElementsByTagName("canvas")[0];
+            const ctx = el.getContext("2d");
+             log(`pointerdown: id = ${evt.pointerId}`);
+            ongoingTouches.push(copyTouch(evt));
+            const color = colorForTouch(evt);
+            const i = ongoingTouches.length-1;
+            ctx.beginPath();
+            ctx.arc(ongoingTouches[i].pageX, ongoingTouches[i].pageY, 4, 0, 2 * Math.PI, false); // a circle at the start
+            ctx.arc(evt.clientX, evt.clientY, 4, 0, 2 * Math.PI, false); // a circle at the start
+            ctx.fillStyle = color;
+            ctx.fill();
+        }
+        
+        function log (str){
+            document.getElementById("log").innerText = str;
+        }
+
+        function handleMove(evt) {
+            const el = document.getElementsByTagName("canvas")[0];
+            const ctx = el.getContext("2d");
+            const color = colorForTouch(evt);
+            const idx = ongoingTouchIndexById(evt.pointerId);
+
+            log(`continuing touch: idx =  ${idx}`);
+            if (idx >= 0) {
+                ctx.beginPath();
+            log(`ctx.moveTo(${ongoingTouches[idx].pageX}, ${ongoingTouches[idx].pageY});`);
+            ctx.moveTo(ongoingTouches[idx].pageX, ongoingTouches[idx].pageY);
+            log(`ctx.lineTo(${evt.clientX}, ${evt.clientY});`);
+            ctx.lineTo(evt.clientX, evt.clientY);
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = color;
+            ctx.stroke();
+            ongoingTouches.splice(idx, 1, copyTouch(evt)); // swap in the new touch record
+            log(".");
+            } else {
+            log(`can't figure out which touch to continue: idx = ${idx}`);
+            }
+        }
+
+        function handleEnd(evt) {
+            log("pointerup");
+            const el = document.getElementsByTagName("canvas")[0];
+            const ctx = el.getContext("2d");
+            const color = colorForTouch(evt);
+            const idx = ongoingTouchIndexById(evt.pointerId);
+
+            if (idx >= 0) {
+            ctx.lineWidth = 4;
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.moveTo(ongoingTouches[idx].pageX, ongoingTouches[idx].pageY);
+            ctx.lineTo(evt.clientX, evt.clientY);
+            ctx.fillRect(evt.clientX - 4, evt.clientY - 4, 8, 8); // and a square at the end
+            ongoingTouches.splice(idx, 1); // remove it; we're done
+            ongoingTouches.splice(idx, 1);
+            } else {
+            log("can't figure out which touch to end");
+            }
+        }
+
+        function handleCancel(evt) {
+            log(`pointercancel: id = ${evt.pointerId}`);
+            const idx = ongoingTouchIndexById(evt.pointerId);
+            ongoingTouches.splice(idx, 1); // remove it; we're done
+        }
+
+        function colorForTouch(touch) {
+            //let r = touch.pointerId % 16;
+            //let g = Math.floor(touch.pointerId / 3) % 16;
+            //let b = Math.floor(touch.pointerId / 7) % 16;
+            //r = r.toString(16); // make it a hex digit
+            //g = g.toString(16); // make it a hex digit
+            //b = b.toString(16); // make it a hex digit
+            //const color = `#${r}${g}${b}`;
+            const color = "#323e38";
+            log(`color for touch with identifier ${touch.pointerId} = ${color}`);
+            return color;
+        }
+
+        function copyTouch(touch) {
+            return {
+                identifier: touch.pointerId,
+                pageX: touch.clientX,
+                pageY: touch.clientY,
+            };
+        }
+
+        function ongoingTouchIndexById(idToFind) {
+            for (let i = 0; i < ongoingTouches.length; i++) {
+                const id = ongoingTouches[i].identifier;
+                if (id === idToFind) {
+                    return i;
+                    }
+                }
+            return -1; // not found
+        }
+
+        function downloadCanvasAsImage(e){
+            const img = new Image();
+            img.src = document.getElementById("canvas").toDataURL();
+            e.target.href = img.src;
+            e.target.download = "testcanvas";
+            e.composedPath().forEach(e=>{
+
+            })
+            console.log();
+        }
+    </script>
+
+
+</html>
